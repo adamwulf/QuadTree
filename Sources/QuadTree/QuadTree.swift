@@ -14,20 +14,30 @@ public protocol Locatable: Hashable {
 }
 
 public struct QuadTree<Element: Locatable> {
-    let frame: CGRect
-    var origin: CGPoint {
+    // MARK: - Constants
+
+    let minDim: CGFloat = 10
+    public let maxPerLeaf: Int
+
+    // MARK: - Size
+
+    public let frame: CGRect
+    public var origin: CGPoint {
         return frame.origin
     }
-    var size: CGSize {
+    public var size: CGSize {
         return frame.size
     }
-    let MaxDepth: Int = 10
-    let maxPerLeaf: Int
+
+    // MARK: - Private Properties
 
     private var branches: [QuadTree<Element>]
-
     private let _depth: Int
-    var depth: Int {
+    private var _items: Set<Element>
+
+    // MARK: - Computed Properties
+
+    public var depth: Int {
         if !branches.isEmpty {
             return branches.reduce(0, { max($0, $1.depth) })
         } else {
@@ -35,8 +45,7 @@ public struct QuadTree<Element: Locatable> {
         }
     }
 
-    private var _items: Set<Element>
-    var items: Set<Element> {
+    public var items: Set<Element> {
         if !branches.isEmpty {
             return branches.reduce(Set(), { $0.union($1.items) })
         } else {
@@ -44,7 +53,7 @@ public struct QuadTree<Element: Locatable> {
         }
     }
 
-    var count: Int {
+    public var count: Int {
         return items.count
     }
 
@@ -76,7 +85,7 @@ public struct QuadTree<Element: Locatable> {
             for i in 0..<branches.count {
                 branches[i].insert(element)
             }
-        } else if items.count >= maxPerLeaf, _depth < MaxDepth {
+        } else if items.count >= maxPerLeaf, size.min > minDim {
             let tlFr = CGRect(origin: origin, size: size / 2)
             let trFr = CGRect(origin: origin + CGVector(dx: size.width, dy: 0), size: size / 2)
             let blFr = CGRect(origin: origin + CGVector(dx: 0, dy: size.height), size: size / 2)
