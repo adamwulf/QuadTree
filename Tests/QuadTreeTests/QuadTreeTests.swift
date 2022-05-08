@@ -135,4 +135,16 @@ final class QuadTreeTests: XCTestCase {
         let elements = quadtree.elements(in: CGRect(x: 300, y: 300, width: 50, height: 50))
         XCTAssertFalse(elements.isEmpty)
     }
+
+    func testExpandTree() throws {
+        var quadtree: QuadTree<CGRect> = QuadTree(size: CGSize(1000, 1000))
+        quadtree.insert(CGRect(x: 1750, y: 1750, width: 100, height: 100))
+
+        XCTAssertEqual(quadtree.depth, 2)
+        XCTAssertEqual(quadtree.count, 1)
+        XCTAssertEqual(quadtree.frame, CGRect(origin: .zero, size: CGSize(2000, 2000)))
+
+        let found = quadtree.elements(in: CGRect(x: 1000, y: 1000, width: 1000, height: 1000))
+        XCTAssertEqual(found.count, 1)
+    }
 }

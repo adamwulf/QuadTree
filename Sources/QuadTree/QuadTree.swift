@@ -31,6 +31,7 @@ public struct QuadTree<Element: Locatable> {
 
     // MARK: - Private Properties
 
+    private var isTopLevel: Bool
     private var frameCache: [Element: CGRect]
     private var branches: [QuadTree<Element>]
     private var _elements: Set<Element>
@@ -40,7 +41,14 @@ public struct QuadTree<Element: Locatable> {
     public let level: Int
     public var depth: Int {
         if !branches.isEmpty {
-            return branches.reduce(0, { max($0, $1.depth) })
+            let branchDepth = branches.reduce(0, { max($0, $1.depth) })
+            if level == 0 {
+                return branchDepth + 1
+            } else if level < 0 {
+                return branchDepth + 1 + abs(level)
+            } else {
+                return branchDepth
+            }
         } else {
             return level
         }
@@ -66,6 +74,7 @@ public struct QuadTree<Element: Locatable> {
         _elements = Set()
         branches = []
         frameCache = [:]
+        isTopLevel = true
     }
 
     init(frame: CGRect,
@@ -80,6 +89,7 @@ public struct QuadTree<Element: Locatable> {
         self.minDim = minDim
         self.level = level
         self.frameCache = [:]
+        self.isTopLevel = false
     }
 
     // MARK: - Public
@@ -114,7 +124,34 @@ public struct QuadTree<Element: Locatable> {
     // MARK: - Helper
 
     mutating internal func insert(_ element: Element, frame eleFrame: CGRect) {
-        guard eleFrame.intersects(frame) else { return }
+        guard eleFrame.intersects(frame) else {
+            guard frame != .null, frame != .infinite else { return }
+            if isTopLevel {
+                // we should grow our quad tree to encompass this element
+                let tl = self
+                let tr = QuadTree(frame: tl.frame + CGVector(tl.size.width, 0),
+                                  branches: [],
+                                  maxPerLeaf: maxPerLeaf,
+                                  minDim: minDim,
+                                  level: level)
+                let bl = QuadTree(frame: tl.frame + CGVector(0, tl.size.height),
+                                  branches: [],
+                                  maxPerLeaf: maxPerLeaf,
+                                  minDim: minDim,
+                                  level: level)
+                let br = QuadTree(frame: tl.frame + CGVector(tl.size.width, tl.size.height),
+                                  branches: [],
+                                  maxPerLeaf: maxPerLeaf,
+                                  minDim: minDim,
+                                  level: level)
+                var newSelf = QuadTree(frame: frame + size, branches: [tl, tr, bl, br], maxPerLeaf: maxPerLeaf, minDim: minDim, level: level - 1)
+                newSelf.isTopLevel = true
+                isTopLevel = false
+                self = newSelf
+                self.insert(element)
+            }
+            return
+        }
         if !branches.isEmpty {
             if eleFrame.contains(frame) {
                 _elements.formUnion([element])
