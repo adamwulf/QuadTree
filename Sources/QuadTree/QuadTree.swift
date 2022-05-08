@@ -70,13 +70,12 @@ public struct QuadTree<Element: Locatable> {
 
     // MARK: - Public
 
-    public func inserting(_ element: Element) -> QuadTree {
-        guard element.intersects(frame) else { return self }
+    mutating public func insert(_ element: Element) {
+        guard element.intersects(frame) else { return }
         if !branches.isEmpty {
-            return QuadTree(frame: frame,
-                            branches: branches.map({ $0.inserting(element) }),
-                            maxPerLeaf: maxPerLeaf,
-                            level: _depth)
+            for i in 0..<branches.count {
+                branches[i].insert(element)
+            }
         } else if items.count >= maxPerLeaf, _depth < MaxDepth {
             let tlFr = CGRect(origin: origin, size: size / 2)
             let trFr = CGRect(origin: origin + CGVector(dx: size.width, dy: 0), size: size / 2)
@@ -93,15 +92,9 @@ public struct QuadTree<Element: Locatable> {
             for item in items + [element] {
                 tree.insert(item)
             }
-            return tree
+            self = tree
         } else {
-            let updated = _items.union([element])
-            return QuadTree(frame: frame, items: updated, maxPerLeaf: maxPerLeaf, level: _depth)
+            _items.formUnion([element])
         }
-    }
-
-    mutating public func insert(_ element: Element) {
-        guard element.intersects(frame) else { return }
-        self = inserting(element)
     }
 }
