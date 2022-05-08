@@ -92,7 +92,7 @@ public struct QuadTree<Element: Locatable> {
         self.level = level
         self.frameCache = [:]
         self.isTopLevel = false
-        self.expandable =          expandable
+        self.expandable = expandable
     }
 
     // MARK: - Public
@@ -114,13 +114,23 @@ public struct QuadTree<Element: Locatable> {
         insert(element, frame: eleFrame)
     }
 
+    mutating public func update(_ element: Element) {
+        // TODO: the frame of the element has changed, remove it and re-add it
+        fatalError("Not yet implemented")
+    }
+
+    mutating public func remove(_ element: Element) {
+        // TODO: remove the element from the tree
+        fatalError("Not yet implemented")
+    }
+
     public func elements(in rect: CGRect) -> Set<Element> {
         guard frame.intersects(rect) else { return Set() }
         let myElements = _elements.filter({
             guard let frame = frameCache[$0] else { return false }
             return frame.intersects(rect)
         })
-        let kidElements = branches.map({ $0.elements(in:rect) })
+        let kidElements = branches.map({ $0.elements(in: rect) })
         return kidElements.reduce(myElements, { $0.union($1) })
     }
 
@@ -192,7 +202,7 @@ public struct QuadTree<Element: Locatable> {
             let tr = QuadTree(frame: trFr, maxPerLeaf: maxPerLeaf, level: level + 1, expandable: expandable)
             let bl = QuadTree(frame: blFr, maxPerLeaf: maxPerLeaf, level: level + 1, expandable: expandable)
             let br = QuadTree(frame: brFr, maxPerLeaf: maxPerLeaf, level: level + 1, expandable: expandable)
-            var tree =  QuadTree(frame: frame,
+            var tree = QuadTree(frame: frame,
                                  branches: [tl, tr, bl, br],
                                  maxPerLeaf: maxPerLeaf,
                                  level: level,

@@ -8,7 +8,7 @@
 import Foundation
 import QuadTree
 
-fileprivate var nextName = 1
+private var nextName = 1
 
 struct Item: Locatable {
     let name: Int
