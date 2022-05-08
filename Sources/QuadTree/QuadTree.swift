@@ -99,13 +99,14 @@ public struct QuadTree<Element: Locatable> {
                 frameCache[element] = eleFrame
             } else {
                 for i in 0..<branches.count {
-                    branches[i].insert(element)
+                    guard branches[i].frame.intersects(eleFrame) else { continue }
+                    branches[i].insert(element, frame: eleFrame)
                 }
             }
         } else if elements.count >= maxPerLeaf, size.min > minDim {
             let tlFr = CGRect(origin: origin, size: size / 2)
-            let trFr = CGRect(origin: origin + CGVector(dx: size.width, dy: 0), size: size / 2)
-            let blFr = CGRect(origin: origin + CGVector(dx: 0, dy: size.height), size: size / 2)
+            let trFr = CGRect(origin: origin + CGVector(dx: size.width / 2, dy: 0), size: size / 2)
+            let blFr = CGRect(origin: origin + CGVector(dx: 0, dy: size.height / 2), size: size / 2)
             let brFr = CGRect(origin: origin + size / 2, size: size / 2)
             let tl = QuadTree(frame: tlFr, maxPerLeaf: maxPerLeaf, level: _depth + 1)
             let tr = QuadTree(frame: trFr, maxPerLeaf: maxPerLeaf, level: _depth + 1)
