@@ -27,5 +27,4 @@ let elements = quadtree.elements(in: CGRect(x: 80, y: 80, width: 30, height: 30)
 
 elements.count // 1
 elements.first?.name // "Fumble"
-
 ```

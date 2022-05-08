@@ -35,6 +35,7 @@ public struct QuadTree<Element: Locatable> {
     private var frameCache: [Element: CGRect]
     private var branches: [QuadTree<Element>]
     private var _elements: Set<Element>
+    public let allowsExpansion: Bool
 
     // MARK: - Computed Properties
 
@@ -64,22 +65,25 @@ public struct QuadTree<Element: Locatable> {
         return elements.count
     }
 
-    public init(origin: CGPoint = .zero, size: CGSize, maxPerLeaf: Int = 10, minDim: CGFloat = 10) {
+    public init(origin: CGPoint = .zero, size: CGSize, maxPerLeaf: Int = 10, minDim: CGFloat = 10, allowsExpansion: Bool = false) {
         self.maxPerLeaf = maxPerLeaf
         self.minDim = minDim
+        self.allowsExpansion = allowsExpansion
         frame = CGRect(origin: origin, size: size)
         level = 1
         _elements = Set()
         branches = []
         frameCache = [:]
         isTopLevel = true
+
     }
 
     init(frame: CGRect,
          branches: [QuadTree<Element>] = [],
          maxPerLeaf: Int,
          minDim: CGFloat = 10,
-         level: Int) {
+         level: Int,
+         allowsExpansion: Bool) {
         self.frame = frame
         self._elements = []
         self.branches = branches
@@ -88,6 +92,7 @@ public struct QuadTree<Element: Locatable> {
         self.level = level
         self.frameCache = [:]
         self.isTopLevel = false
+        self.allowsExpansion = allowsExpansion
     }
 
     // MARK: - Public
@@ -121,30 +126,48 @@ public struct QuadTree<Element: Locatable> {
 
     // MARK: - Helper
 
+    internal func expanded(toward otherFrame: CGRect) -> QuadTree {
+        // we should grow our quad tree to encompass this element
+        let isLeft = otherFrame.maxX > frame.minX
+        let isTop = otherFrame.maxY > frame.minY
+        let xSign: CGFloat = isLeft ? 1 : -1
+        let ySign: CGFloat = isTop ? 1 : -1
+        var branches: [QuadTree] = []
+        let otherRects: [CGRect] = [self.frame + CGVector(xSign * size.width, 0),
+                                    self.frame + CGVector(0, ySign * size.height),
+                                    self.frame + CGVector(xSign * size.width, ySign * size.height)]
+
+        var selfAsQuad = self
+        selfAsQuad.isTopLevel = false
+        branches.append(selfAsQuad)
+
+        var totalFrame = frame
+        for rect in otherRects {
+            totalFrame = totalFrame.union(rect)
+            branches.append(QuadTree(frame: rect,
+                                     branches: [],
+                                     maxPerLeaf: maxPerLeaf,
+                                     minDim: minDim,
+                                     level: level,
+                                     allowsExpansion: allowsExpansion))
+        }
+
+        var expanded = QuadTree(frame: totalFrame,
+                                branches: branches,
+                                maxPerLeaf: maxPerLeaf,
+                                minDim: minDim,
+                                level: level - 1,
+                                allowsExpansion: allowsExpansion)
+        expanded.isTopLevel = true
+        return expanded
+    }
+
     mutating internal func insert(_ element: Element, frame eleFrame: CGRect) {
         guard eleFrame.intersects(frame) else {
             guard frame != .null, frame != .infinite else { return }
-            if isTopLevel {
+            if isTopLevel, allowsExpansion {
                 // we should grow our quad tree to encompass this element
-                let tl = self
-                let tr = QuadTree(frame: tl.frame + CGVector(tl.size.width, 0),
-                                  branches: [],
-                                  maxPerLeaf: maxPerLeaf,
-                                  minDim: minDim,
-                                  level: level)
-                let bl = QuadTree(frame: tl.frame + CGVector(0, tl.size.height),
-                                  branches: [],
-                                  maxPerLeaf: maxPerLeaf,
-                                  minDim: minDim,
-                                  level: level)
-                let br = QuadTree(frame: tl.frame + CGVector(tl.size.width, tl.size.height),
-                                  branches: [],
-                                  maxPerLeaf: maxPerLeaf,
-                                  minDim: minDim,
-                                  level: level)
-                var newSelf = QuadTree(frame: frame + size, branches: [tl, tr, bl, br], maxPerLeaf: maxPerLeaf, minDim: minDim, level: level - 1)
-                newSelf.isTopLevel = true
-                isTopLevel = false
+                let newSelf = expanded(toward: eleFrame)
                 self = newSelf
                 self.insert(element)
             }
@@ -165,14 +188,15 @@ public struct QuadTree<Element: Locatable> {
             let trFr = CGRect(origin: origin + CGVector(dx: size.width / 2, dy: 0), size: size / 2)
             let blFr = CGRect(origin: origin + CGVector(dx: 0, dy: size.height / 2), size: size / 2)
             let brFr = CGRect(origin: origin + size / 2, size: size / 2)
-            let tl = QuadTree(frame: tlFr, maxPerLeaf: maxPerLeaf, level: level + 1)
-            let tr = QuadTree(frame: trFr, maxPerLeaf: maxPerLeaf, level: level + 1)
-            let bl = QuadTree(frame: blFr, maxPerLeaf: maxPerLeaf, level: level + 1)
-            let br = QuadTree(frame: brFr, maxPerLeaf: maxPerLeaf, level: level + 1)
+            let tl = QuadTree(frame: tlFr, maxPerLeaf: maxPerLeaf, level: level + 1, allowsExpansion: allowsExpansion)
+            let tr = QuadTree(frame: trFr, maxPerLeaf: maxPerLeaf, level: level + 1, allowsExpansion: allowsExpansion)
+            let bl = QuadTree(frame: blFr, maxPerLeaf: maxPerLeaf, level: level + 1, allowsExpansion: allowsExpansion)
+            let br = QuadTree(frame: brFr, maxPerLeaf: maxPerLeaf, level: level + 1, allowsExpansion: allowsExpansion)
             var tree =  QuadTree(frame: frame,
                                  branches: [tl, tr, bl, br],
                                  maxPerLeaf: maxPerLeaf,
-                                 level: level)
+                                 level: level,
+                                 allowsExpansion: allowsExpansion)
             for item in elements + [element] {
                 let itemFrame = frameCache[item] ?? item.frame
                 tree.insert(item, frame: itemFrame)
