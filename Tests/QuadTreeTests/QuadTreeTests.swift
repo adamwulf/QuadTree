@@ -10,6 +10,9 @@ import XCTest
 import SwiftToolbox
 
 extension CGRect: Locatable {
+    public var frame: CGRect {
+        return self
+    }
     public func hash(into hasher: inout Hasher) {
         hasher.combine(origin.x)
         hasher.combine(origin.y)
@@ -60,5 +63,19 @@ final class QuadTreeTests: XCTestCase {
 
         XCTAssertGreaterThan(quadtree.count, 50)
         XCTAssertGreaterThan(quadtree.depth, 1)
+    }
+
+    func testFullyContains() throws {
+        var quadtree: QuadTree<CGRect> = QuadTree(size: CGSize(100, 100))
+
+        for _ in 0..<20 {
+            quadtree.insert(CGRect(x: -100 + CGFloat.random(in: -10..<10),
+                                   y: -100 + CGFloat.random(in: -10..<10),
+                                   width: 300 + CGFloat.random(in: -10..<10),
+                                   height: 300 + CGFloat.random(in: -10..<10)))
+        }
+
+        XCTAssertEqual(quadtree.count, 20)
+        XCTAssertEqual(quadtree.depth, 2)
     }
 }
