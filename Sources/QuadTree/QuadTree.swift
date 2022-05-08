@@ -101,6 +101,16 @@ public struct QuadTree<Element: Locatable> {
         insert(element, frame: eleFrame)
     }
 
+    public func elements(in rect: CGRect) -> Set<Element> {
+        guard frame.intersects(rect) else { return Set() }
+        let myElements = _elements.filter({
+            guard let frame = frameCache[$0] else { return false }
+            return frame.intersects(rect)
+        })
+        let kidElements = branches.map({ $0.elements(in:rect) })
+        return kidElements.reduce(myElements, { $0.union($1) })
+    }
+
     // MARK: - Helper
 
     mutating internal func insert(_ element: Element, frame eleFrame: CGRect) {

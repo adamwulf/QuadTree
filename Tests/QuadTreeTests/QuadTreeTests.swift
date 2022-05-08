@@ -77,6 +77,12 @@ final class QuadTreeTests: XCTestCase {
 
         XCTAssertEqual(quadtree.count, 20)
         XCTAssertEqual(quadtree.depth, 2)
+
+        quadtree.walk { node in
+            guard !node.elements.isEmpty else { return true }
+            XCTAssertGreaterThan(node.elements.count, node.maxPerLeaf)
+            return true
+        }
     }
 
     func testMaxDepth() throws {
@@ -114,5 +120,19 @@ final class QuadTreeTests: XCTestCase {
             }
             return ret
         }
+    }
+
+    func testFindInRect() throws {
+        var quadtree: QuadTree<CGRect> = QuadTree(size: CGSize(1000, 1000))
+
+        for _ in 0..<2000 {
+            quadtree.insert(CGRect(x: CGFloat.random(in: -90..<990),
+                                   y: CGFloat.random(in: -90..<990),
+                                   width: CGFloat.random(in: 0..<100),
+                                   height: CGFloat.random(in: 0..<100)))
+        }
+
+        let elements = quadtree.elements(in: CGRect(x: 300, y: 300, width: 50, height: 50))
+        XCTAssertFalse(elements.isEmpty)
     }
 }
