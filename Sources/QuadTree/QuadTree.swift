@@ -42,10 +42,8 @@ public struct QuadTree<Element: Locatable> {
     public var depth: Int {
         if !branches.isEmpty {
             let branchDepth = branches.reduce(0, { max($0, $1.depth) })
-            if level == 0 {
+            if level <= 0 {
                 return branchDepth + 1
-            } else if level < 0 {
-                return branchDepth + 1 + abs(level)
             } else {
                 return branchDepth
             }
