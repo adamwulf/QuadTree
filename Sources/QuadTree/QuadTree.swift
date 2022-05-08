@@ -14,12 +14,6 @@ public protocol Locatable: Hashable {
 }
 
 public struct QuadTree<Element: Locatable> {
-    indirect enum QuadType {
-        case leaf(_ items: [Element])
-        case branch(_ tl: QuadTree, _ tr: QuadTree, _ bl: QuadTree, _ br: QuadTree)
-    }
-
-    private var data: QuadType
     let frame: CGRect
     var origin: CGPoint {
         return frame.origin
@@ -29,21 +23,24 @@ public struct QuadTree<Element: Locatable> {
     }
     let MaxDepth: Int = 10
     let maxPerLeaf: Int
-    private let level: Int
+
+    private var branches: [QuadTree<Element>]
+
+    private let _depth: Int
     var depth: Int {
-        switch self.data {
-        case .leaf:
-            return level
-        case .branch(let tl, let tr, let bl, let br):
-            return max(tl.depth, tr.depth, bl.depth, br.depth)
+        if !branches.isEmpty {
+            return branches.reduce(0, { max($0, $1.depth) })
+        } else {
+            return _depth
         }
     }
+
+    private var _items: Set<Element>
     var items: Set<Element> {
-        switch self.data {
-        case .leaf(let items):
-            return Set(items)
-        case .branch(let tl, let tr, let bl, let br):
-            return tl.items.union(tr.items).union(bl.items).union(br.items)
+        if !branches.isEmpty {
+            return branches.reduce(Set(), { $0.union($1.items) })
+        } else {
+            return _items
         }
     }
 
@@ -54,54 +51,52 @@ public struct QuadTree<Element: Locatable> {
     public init(origin: CGPoint = .zero, size: CGSize, maxPerLeaf: Int = 10) {
         self.maxPerLeaf = maxPerLeaf
         frame = CGRect(origin: origin, size: size)
-        data = .leaf([])
-        level = 1
+        _depth = 1
+        _items = Set()
+        branches = []
     }
 
-    init(frame: CGRect, data: QuadType, maxPerLeaf: Int, level: Int) {
+    init(frame: CGRect,
+         items: Set<Element> = Set(),
+         branches: [QuadTree<Element>] = [],
+         maxPerLeaf: Int,
+         level: Int) {
         self.frame = frame
-        self.data = data
+        self._items = items
+        self.branches = branches
         self.maxPerLeaf = maxPerLeaf
-        self.level = level
+        self._depth = level
     }
 
     // MARK: - Public
 
     public func inserting(_ element: Element) -> QuadTree {
         guard element.intersects(frame) else { return self }
-        switch self.data {
-        case .leaf(let items):
-            guard
-                items.count >= maxPerLeaf,
-                level < MaxDepth
-            else {
-                let updated = items.contains(element) ? items : items + [element]
-                return QuadTree(frame: frame, data: .leaf(updated), maxPerLeaf: maxPerLeaf, level: level)
-            }
+        if !branches.isEmpty {
+            return QuadTree(frame: frame,
+                            branches: branches.map({ $0.inserting(element) }),
+                            maxPerLeaf: maxPerLeaf,
+                            level: _depth)
+        } else if items.count >= maxPerLeaf, _depth < MaxDepth {
             let tlFr = CGRect(origin: origin, size: size / 2)
             let trFr = CGRect(origin: origin + CGVector(dx: size.width, dy: 0), size: size / 2)
             let blFr = CGRect(origin: origin + CGVector(dx: 0, dy: size.height), size: size / 2)
             let brFr = CGRect(origin: origin + size / 2, size: size / 2)
-            let tl = QuadTree(frame: tlFr, data: .leaf([]), maxPerLeaf: maxPerLeaf, level: level + 1)
-            let tr = QuadTree(frame: trFr, data: .leaf([]), maxPerLeaf: maxPerLeaf, level: level + 1)
-            let bl = QuadTree(frame: blFr, data: .leaf([]), maxPerLeaf: maxPerLeaf, level: level + 1)
-            let br = QuadTree(frame: brFr, data: .leaf([]), maxPerLeaf: maxPerLeaf, level: level + 1)
+            let tl = QuadTree(frame: tlFr, maxPerLeaf: maxPerLeaf, level: _depth + 1)
+            let tr = QuadTree(frame: trFr, maxPerLeaf: maxPerLeaf, level: _depth + 1)
+            let bl = QuadTree(frame: blFr, maxPerLeaf: maxPerLeaf, level: _depth + 1)
+            let br = QuadTree(frame: brFr, maxPerLeaf: maxPerLeaf, level: _depth + 1)
             var tree =  QuadTree(frame: frame,
-                                 data: .branch(tl, tr, bl, br),
+                                 branches: [tl, tr, bl, br],
                                  maxPerLeaf: maxPerLeaf,
-                                 level: level)
+                                 level: _depth)
             for item in items + [element] {
                 tree.insert(item)
             }
             return tree
-        case .branch(let tl, let tr, let bl, let br):
-            return QuadTree(frame: frame,
-                            data: .branch(tl.inserting(element),
-                                          tr.inserting(element),
-                                          bl.inserting(element),
-                                          br.inserting(element)),
-                            maxPerLeaf: maxPerLeaf,
-                            level: level)
+        } else {
+            let updated = _items.union([element])
+            return QuadTree(frame: frame, items: updated, maxPerLeaf: maxPerLeaf, level: _depth)
         }
     }
 
