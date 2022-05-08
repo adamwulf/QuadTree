@@ -137,7 +137,7 @@ final class QuadTreeTests: XCTestCase {
     }
 
     func testExpandTree() throws {
-        var quadtree: QuadTree<CGRect> = QuadTree(size: CGSize(1000, 1000), allowsExpansion: true)
+        var quadtree: QuadTree<CGRect> = QuadTree(size: CGSize(1000, 1000), expandable: true)
         quadtree.insert(CGRect(x: 1750, y: 1750, width: 100, height: 100))
 
         XCTAssertEqual(quadtree.depth, 2)
@@ -149,7 +149,7 @@ final class QuadTreeTests: XCTestCase {
     }
 
     func testExpandTreeTwice() throws {
-        var quadtree: QuadTree<CGRect> = QuadTree(size: CGSize(1000, 1000), allowsExpansion: true)
+        var quadtree: QuadTree<CGRect> = QuadTree(size: CGSize(1000, 1000), expandable: true)
         quadtree.insert(CGRect(x: 2750, y: 2750, width: 100, height: 100))
 
         XCTAssertEqual(quadtree.depth, 3)
@@ -161,7 +161,7 @@ final class QuadTreeTests: XCTestCase {
     }
 
     func testExpandToLeft() throws {
-        var quadtree: QuadTree<CGRect> = QuadTree(size: CGSize(1000, 1000), allowsExpansion: true)
+        var quadtree: QuadTree<CGRect> = QuadTree(size: CGSize(1000, 1000), expandable: true)
         quadtree.insert(CGRect(x: -1750, y: -1750, width: 100, height: 100))
 
         XCTAssertEqual(quadtree.depth, 3)
