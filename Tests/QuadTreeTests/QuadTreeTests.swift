@@ -83,7 +83,6 @@ final class QuadTreeTests: XCTestCase {
         var quadtree: QuadTree<Item> = QuadTree(size: CGSize(100, 100))
 
         for _ in 0..<200 {
-            let before = quadtree.count
             let item = Item(frame: CGRect(x: CGFloat.random(in: 0..<10),
                                           y: CGFloat.random(in: 0..<10),
                                           width: CGFloat.random(in: 0..<10),

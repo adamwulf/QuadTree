@@ -84,6 +84,16 @@ public struct QuadTree<Element: Locatable> {
 
     // MARK: - Public
 
+    public func walk(_ block: (QuadTree) -> Bool) {
+        if block(self) {
+            for branch in branches {
+                if !block(branch) {
+                    break
+                }
+            }
+        }
+    }
+
     mutating public func insert(_ element: Element) {
         let eleFrame = element.frame
         insert(element, frame: eleFrame)
