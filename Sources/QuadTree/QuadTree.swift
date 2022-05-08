@@ -33,16 +33,16 @@ public struct QuadTree<Element: Locatable> {
 
     private var frameCache: [Element: CGRect]
     private var branches: [QuadTree<Element>]
-    private let _depth: Int
     private var _elements: Set<Element>
 
     // MARK: - Computed Properties
 
+    public let level: Int
     public var depth: Int {
         if !branches.isEmpty {
             return branches.reduce(0, { max($0, $1.depth) })
         } else {
-            return _depth
+            return level
         }
     }
 
@@ -62,7 +62,7 @@ public struct QuadTree<Element: Locatable> {
         self.maxPerLeaf = maxPerLeaf
         self.minDim = minDim
         frame = CGRect(origin: origin, size: size)
-        _depth = 1
+        level = 1
         _elements = Set()
         branches = []
         frameCache = [:]
@@ -78,19 +78,21 @@ public struct QuadTree<Element: Locatable> {
         self.branches = branches
         self.maxPerLeaf = maxPerLeaf
         self.minDim = minDim
-        self._depth = level
+        self.level = level
         self.frameCache = [:]
     }
 
     // MARK: - Public
 
+    /// Breadth first walk of the quad tree, until `block` returns false
     public func walk(_ block: (QuadTree) -> Bool) {
-        if block(self) {
-            for branch in branches {
-                if !block(branch) {
-                    break
-                }
+        var nodes: [QuadTree] = [self]
+        while !nodes.isEmpty {
+            let node = nodes.removeFirst()
+            if !block(node) {
+                break
             }
+            nodes.append(contentsOf: node.branches)
         }
     }
 
@@ -118,14 +120,14 @@ public struct QuadTree<Element: Locatable> {
             let trFr = CGRect(origin: origin + CGVector(dx: size.width / 2, dy: 0), size: size / 2)
             let blFr = CGRect(origin: origin + CGVector(dx: 0, dy: size.height / 2), size: size / 2)
             let brFr = CGRect(origin: origin + size / 2, size: size / 2)
-            let tl = QuadTree(frame: tlFr, maxPerLeaf: maxPerLeaf, level: _depth + 1)
-            let tr = QuadTree(frame: trFr, maxPerLeaf: maxPerLeaf, level: _depth + 1)
-            let bl = QuadTree(frame: blFr, maxPerLeaf: maxPerLeaf, level: _depth + 1)
-            let br = QuadTree(frame: brFr, maxPerLeaf: maxPerLeaf, level: _depth + 1)
+            let tl = QuadTree(frame: tlFr, maxPerLeaf: maxPerLeaf, level: level + 1)
+            let tr = QuadTree(frame: trFr, maxPerLeaf: maxPerLeaf, level: level + 1)
+            let bl = QuadTree(frame: blFr, maxPerLeaf: maxPerLeaf, level: level + 1)
+            let br = QuadTree(frame: brFr, maxPerLeaf: maxPerLeaf, level: level + 1)
             var tree =  QuadTree(frame: frame,
                                  branches: [tl, tr, bl, br],
                                  maxPerLeaf: maxPerLeaf,
-                                 level: _depth)
+                                 level: level)
             for item in elements + [element] {
                 let itemFrame = frameCache[item] ?? item.frame
                 tree.insert(item, frame: itemFrame)

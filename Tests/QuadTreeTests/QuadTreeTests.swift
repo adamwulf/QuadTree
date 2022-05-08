@@ -93,4 +93,26 @@ final class QuadTreeTests: XCTestCase {
         XCTAssertEqual(quadtree.count, 200)
         XCTAssertEqual(quadtree.depth, 5)
     }
+
+    func testWalk() throws {
+        var quadtree: QuadTree<Item> = QuadTree(size: CGSize(100, 100))
+
+        for _ in 0..<200 {
+            let item = Item(frame: CGRect(x: CGFloat.random(in: 0..<10),
+                                          y: CGFloat.random(in: 0..<10),
+                                          width: CGFloat.random(in: 0..<10),
+                                          height: CGFloat.random(in: 0..<10)))
+            quadtree.insert(item)
+        }
+
+        var didReturnFalse = false
+        quadtree.walk { tree in
+            guard !didReturnFalse else { XCTFail(); return true }
+            let ret = tree.level != 4
+            if !ret {
+                didReturnFalse = true
+            }
+            return ret
+        }
+    }
 }
