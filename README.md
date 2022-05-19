@@ -1,3 +1,5 @@
+[![CI](https://github.com/adamwulf/QuadTree/actions/workflows/swift.yml/badge.svg)](https://github.com/adamwulf/QuadTree/actions/workflows/swift.yml)
+
 # QuadTree
 
 A very simple implementation of a QuadTree datastructure.
